@@ -1,0 +1,53 @@
+@startuml
+title Alexandrite Order Caching Sequence Diagram
+
+participant MES
+participant "MES API" as MES_API
+participant Cache as CACHE
+database "MES DB" as MES_DB
+queue "Message Queue" as MESSAGE_QUEUE
+
+
+MES -> MES_API: Requests the newest orders for the first time
+activate MES_API
+MES_API -> CACHE: Reads data
+activate CACHE
+CACHE -> MES_DB: Reads data since the cache is empty
+activate MES_DB
+MES_DB -->> CACHE: Initializes the cache
+deactivate MES_DB
+CACHE -->> MES_API: Returns data
+deactivate CACHE
+MES_API -->> MES: Returns data
+deactivate MES_API
+
+MES -> MES_API: Requests the newest orders
+activate MES_API
+MES_API -> CACHE: Reads data
+activate CACHE
+CACHE -->> MES_API: Returns previously cached data
+deactivate CACHE
+MES_API -->> MES: Returns data
+deactivate MES_API
+
+note over MES_API: MES API gets data about new orders reading from a message queue
+MES_API -> MESSAGE_QUEUE: Reads a topic
+activate MES_API
+activate MESSAGE_QUEUE
+MESSAGE_QUEUE -->> MES_API: Returns a message
+deactivate MESSAGE_QUEUE
+MES_API -> CACHE: Requests data updating
+activate CACHE
+CACHE -> MES_DB: Updates data
+activate MES_DB
+MES_DB -->> CACHE: Responses
+deactivate MES_DB
+CACHE -> MES_DB: Requests data for updating
+activate MES_DB
+MES_DB -> CACHE: Updates the cache
+deactivate MES_DB
+CACHE -->> MES_API: Responses
+deactivate CACHE
+deactivate MES_API
+
+@enduml
