@@ -5,9 +5,10 @@ participant MES
 participant "MES API" as MES_API
 participant Cache as CACHE
 database "MES DB" as MES_DB
-queue "Message Queue" as MESSAGE_QUEUE
+participant "CRM API" as CRM_API
+database "SHOP DB" as SHOP_DB
 
-
+note over MES_API: Sequence of order list reading
 MES -> MES_API: Requests the newest orders for the first time
 activate MES_API
 MES_API -> CACHE: Reads data
@@ -30,12 +31,9 @@ deactivate CACHE
 MES_API -->> MES: Returns data
 deactivate MES_API
 
-note over MES_API: MES API gets data about new orders reading from a message queue
-MES_API -> MESSAGE_QUEUE: Reads a topic
-activate MES_API
-activate MESSAGE_QUEUE
-MESSAGE_QUEUE -->> MES_API: Returns a message
-deactivate MESSAGE_QUEUE
+note over MES_API: Sequence of successful order status changing
+MES -> MES_API: Requests status changing
+activate MES_API 
 MES_API -> CACHE: Requests data updating
 activate CACHE
 CACHE -> MES_DB: Updates data
@@ -44,10 +42,19 @@ MES_DB -->> CACHE: Responses
 deactivate MES_DB
 CACHE -> MES_DB: Requests data for updating
 activate MES_DB
-MES_DB -> CACHE: Updates the cache
+MES_DB -->> CACHE: Updates the cache
 deactivate MES_DB
 CACHE -->> MES_API: Responses
 deactivate CACHE
+MES_API -> CRM_API: Requests status changing
+activate CRM_API
+CRM_API -> SHOP_DB: Updates data
+activate SHOP_DB
+SHOP_DB -->> CRM_API: Responses
+deactivate SHOP_DB
+CRM_API -->> MES_API: Responses
+deactivate CRM_API
+MES_API -->> MES: Responses
 deactivate MES_API
 
 @enduml
