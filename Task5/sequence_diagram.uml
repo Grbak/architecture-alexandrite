@@ -1,0 +1,60 @@
+@startuml
+title Alexandrite Order Caching Sequence Diagram
+
+participant MES
+participant "MES API" as MES_API
+participant Cache as CACHE
+database "MES DB" as MES_DB
+participant "CRM API" as CRM_API
+database "SHOP DB" as SHOP_DB
+
+note over MES_API: Sequence of order list reading
+MES -> MES_API: Requests the newest orders for the first time
+activate MES_API
+MES_API -> CACHE: Reads data
+activate CACHE
+CACHE -> MES_DB: Reads data since the cache is empty
+activate MES_DB
+MES_DB -->> CACHE: Initializes the cache
+deactivate MES_DB
+CACHE -->> MES_API: Returns data
+deactivate CACHE
+MES_API -->> MES: Returns data
+deactivate MES_API
+
+MES -> MES_API: Requests the newest orders
+activate MES_API
+MES_API -> CACHE: Reads data
+activate CACHE
+CACHE -->> MES_API: Returns previously cached data
+deactivate CACHE
+MES_API -->> MES: Returns data
+deactivate MES_API
+
+note over MES_API: Sequence of successful order status changing
+MES -> MES_API: Requests status changing
+activate MES_API 
+MES_API -> CACHE: Requests data updating
+activate CACHE
+CACHE -> MES_DB: Updates data
+activate MES_DB
+MES_DB -->> CACHE: Responses
+deactivate MES_DB
+CACHE -> MES_DB: Requests data for updating
+activate MES_DB
+MES_DB -->> CACHE: Updates the cache
+deactivate MES_DB
+CACHE -->> MES_API: Responses
+deactivate CACHE
+MES_API -> CRM_API: Requests status changing
+activate CRM_API
+CRM_API -> SHOP_DB: Updates data
+activate SHOP_DB
+SHOP_DB -->> CRM_API: Responses
+deactivate SHOP_DB
+CRM_API -->> MES_API: Responses
+deactivate CRM_API
+MES_API -->> MES: Responses
+deactivate MES_API
+
+@enduml
